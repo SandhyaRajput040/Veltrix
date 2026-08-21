@@ -74,6 +74,7 @@ class Settings:
 
     # Google Drive
     google_drive_credentials_file: str
+    google_drive_folder_id: str
 
     # Notifications
     notification_email: str
@@ -96,6 +97,7 @@ def load_settings() -> Settings:
         baapstore_api_url=_get_env("BAAPSTORE_API_URL"),
         baapstore_api_key=_get_env("BAAPSTORE_API_KEY"),
         google_drive_credentials_file=_get_env("GOOGLE_DRIVE_CREDENTIALS_FILE"),
+     google_drive_folder_id=_get_env("GOOGLE_DRIVE_FOLDER_ID"),
         notification_email=_get_env("NOTIFICATION_EMAIL"),
         smtp_host=_get_env("SMTP_HOST"),
         smtp_port=_get_int_env("SMTP_PORT", 587),

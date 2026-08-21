@@ -16,3 +16,6 @@ typing_extensions==4.16.0
 tzdata==2026.3
 urllib3==2.7.0
 pytest==9.1.1
+google-api-python-client==2.199.0
+google-auth-httplib2==0.4.1
+google-auth==2.56.3
