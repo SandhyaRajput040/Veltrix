@@ -53,8 +53,8 @@ class Settings:
     Fields are plain strings/ints/bools -- this class does NOT validate
     that a value is present or correct. Each module validates the
     specific values it needs when that module is built (for example,
-    the Amazon module will check AMAZON_* fields when Module 4 is
-    implemented). Module 1 only needs configuration LOADING to work.
+    the Amazon module validates AMAZON_* fields when it actually calls
+    Amazon). Module 1 only needs configuration LOADING to work.
     """
 
     # Application
@@ -62,11 +62,15 @@ class Settings:
     environment: str
     debug: bool
 
-    # Amazon
-    amazon_access_key: str
-    amazon_secret_key: str
-    amazon_marketplace_id: str
+    # Amazon SP-API (Login-with-Amazon auth -- AWS SigV4/IAM credentials
+    # are NOT required as of Amazon's October 2023 auth simplification)
+    amazon_lwa_client_id: str
+    amazon_lwa_client_secret: str
+    amazon_refresh_token: str
     amazon_seller_id: str
+    amazon_marketplace_id: str
+    amazon_sp_api_endpoint: str
+    amazon_fallback_mode: bool
 
     # Baapstore
     baapstore_api_url: str
@@ -90,14 +94,19 @@ def load_settings() -> Settings:
         app_name=_get_env("APP_NAME", "Veltrix"),
         environment=_get_env("ENVIRONMENT", "development"),
         debug=_get_bool_env("DEBUG", False),
-        amazon_access_key=_get_env("AMAZON_ACCESS_KEY"),
-        amazon_secret_key=_get_env("AMAZON_SECRET_KEY"),
-        amazon_marketplace_id=_get_env("AMAZON_MARKETPLACE_ID"),
+        amazon_lwa_client_id=_get_env("AMAZON_LWA_CLIENT_ID"),
+        amazon_lwa_client_secret=_get_env("AMAZON_LWA_CLIENT_SECRET"),
+        amazon_refresh_token=_get_env("AMAZON_REFRESH_TOKEN"),
         amazon_seller_id=_get_env("AMAZON_SELLER_ID"),
+        amazon_marketplace_id=_get_env("AMAZON_MARKETPLACE_ID", "A21TJRUUN4KGV"),
+        amazon_sp_api_endpoint=_get_env(
+            "AMAZON_SP_API_ENDPOINT", "https://sellingpartnerapi-eu.amazon.com"
+        ),
+        amazon_fallback_mode=_get_bool_env("AMAZON_FALLBACK_MODE", True),
         baapstore_api_url=_get_env("BAAPSTORE_API_URL"),
         baapstore_api_key=_get_env("BAAPSTORE_API_KEY"),
         google_drive_credentials_file=_get_env("GOOGLE_DRIVE_CREDENTIALS_FILE"),
-     google_drive_folder_id=_get_env("GOOGLE_DRIVE_FOLDER_ID"),
+        google_drive_folder_id=_get_env("GOOGLE_DRIVE_FOLDER_ID"),
         notification_email=_get_env("NOTIFICATION_EMAIL"),
         smtp_host=_get_env("SMTP_HOST"),
         smtp_port=_get_int_env("SMTP_PORT", 587),
