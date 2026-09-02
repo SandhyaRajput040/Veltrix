@@ -183,3 +183,64 @@ def test_submit_live_raises_if_feed_ends_fatal(monkeypatch, tmp_path):
             endpoint="https://endpoint.example.com",
             product_type_cache_file=str(tmp_path / "cache.json"),
         )
+
+
+# ---------------------------------------------------------------------------
+# submit_based_on_settings (the single fallback-vs-live decision point)
+# ---------------------------------------------------------------------------
+
+
+class _FakeSettings:
+    def __init__(self, fallback_mode):
+        self.amazon_fallback_mode = fallback_mode
+        self.amazon_seller_id = "SELLER1"
+        self.amazon_lwa_client_id = "cid"
+        self.amazon_lwa_client_secret = "secret"
+        self.amazon_refresh_token = "refresh"
+        self.amazon_marketplace_id = "MKT1"
+        self.amazon_sp_api_endpoint = "https://endpoint.example.com"
+
+
+def test_submit_based_on_settings_uses_fallback_when_flag_is_true(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    rows = [_row("SKU-1", 10)]
+    settings = _FakeSettings(fallback_mode=True)
+
+    result = submitter_module.submit_based_on_settings(rows, "source_name", settings)
+
+    assert result.mode == "fallback"
+
+
+def test_submit_based_on_settings_uses_live_when_flag_is_false(monkeypatch, tmp_path):
+    rows = [_row("SKU-1", 10)]
+    settings = _FakeSettings(fallback_mode=False)
+
+    monkeypatch.setattr(submitter_module, "get_access_token", lambda *a, **k: "fake-token")
+    monkeypatch.setattr(submitter_module, "get_product_types", lambda *a, **k: {"SKU-1": "LUGGAGE"})
+    monkeypatch.setattr(
+        submitter_module,
+        "create_feed_document",
+        lambda *a, **k: {"feedDocumentId": "doc-1", "url": "https://upload.example.com"},
+    )
+    monkeypatch.setattr(submitter_module, "upload_feed_document", lambda *a, **k: None)
+    monkeypatch.setattr(submitter_module, "create_feed", lambda *a, **k: "feed-1")
+    monkeypatch.setattr(
+        submitter_module,
+        "get_feed",
+        lambda *a, **k: {"processingStatus": "DONE", "resultFeedDocumentId": "result-doc-1"},
+    )
+    monkeypatch.setattr(
+        submitter_module,
+        "get_feed_document",
+        lambda *a, **k: {"url": "https://download.example.com", "compressionAlgorithm": None},
+    )
+    monkeypatch.setattr(
+        submitter_module,
+        "download_feed_document",
+        lambda *a, **k: json.dumps({"results": [{"sku": "SKU-1", "status": "ACCEPTED"}]}),
+    )
+
+    result = submitter_module.submit_based_on_settings(rows, "source_name", settings)
+
+    assert result.mode == "live"
+    assert result.feed_ids == ["feed-1"]

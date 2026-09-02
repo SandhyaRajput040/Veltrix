@@ -167,10 +167,9 @@ def submit_live(
 
 def _read_amazon_txt_rows(txt_path: str) -> list:
     """
-    Read rows back out of a Module 3-generated Amazon TXT file, for
-    the manual smoke test below. Not used anywhere in the tested
-    pipeline logic -- Module 5 will wire modules together in memory
-    instead of round-tripping through a file.
+    Read rows back out of a Module 3-generated Amazon TXT file. Used
+    both by the manual smoke test below and by Module 5's scheduler,
+    so the two never diverge in how they interpret a TXT file.
     """
     with open(txt_path, "r", encoding="utf-8") as fh:
         lines = fh.read().splitlines()
@@ -181,6 +180,33 @@ def _read_amazon_txt_rows(txt_path: str) -> list:
         values = line.split("\t")
         rows.append(dict(zip(header, values)))
     return rows
+
+def submit_based_on_settings(rows: list, source_name: str, settings) -> SubmissionResult:
+    """
+    Single entry point Module 5's scheduler (and this file's own
+    manual smoke test) both call: picks fallback vs live mode based on
+    settings.amazon_fallback_mode, so that decision lives in exactly
+    one place.
+    """
+    if settings.amazon_fallback_mode:
+        return submit_fallback(
+            rows,
+            seller_id=settings.amazon_seller_id or "UNKNOWN_SELLER_ID",
+            product_types={},
+            output_dir="ready_to_upload",
+            source_name=source_name,
+        )
+
+    return submit_live(
+        rows,
+        client_id=settings.amazon_lwa_client_id,
+        client_secret=settings.amazon_lwa_client_secret,
+        refresh_token=settings.amazon_refresh_token,
+        seller_id=settings.amazon_seller_id,
+        marketplace_id=settings.amazon_marketplace_id,
+        endpoint=settings.amazon_sp_api_endpoint,
+        product_type_cache_file="state/amazon_product_type_cache.json",
+    )
 
 
 if __name__ == "__main__":
@@ -199,30 +225,14 @@ if __name__ == "__main__":
     for txt_path in txt_files:
         rows = _read_amazon_txt_rows(txt_path)
         source_name = os.path.splitext(os.path.basename(txt_path))[0]
+        result = submit_based_on_settings(rows, source_name, settings)
 
-        if settings.amazon_fallback_mode:
-            result = submit_fallback(
-                rows,
-                seller_id=settings.amazon_seller_id or "UNKNOWN_SELLER_ID",
-                product_types={},
-                output_dir="ready_to_upload",
-                source_name=source_name,
-            )
+        if result.mode == "fallback":
             print(
                 f"[FALLBACK MODE -- NOT submitted to Amazon] {source_name}: "
                 f"{result.total_messages} rows written to {result.output_paths}"
             )
         else:
-            result = submit_live(
-                rows,
-                client_id=settings.amazon_lwa_client_id,
-                client_secret=settings.amazon_lwa_client_secret,
-                refresh_token=settings.amazon_refresh_token,
-                seller_id=settings.amazon_seller_id,
-                marketplace_id=settings.amazon_marketplace_id,
-                endpoint=settings.amazon_sp_api_endpoint,
-                product_type_cache_file="state/amazon_product_type_cache.json",
-            )
             print(
                 f"[LIVE] {source_name}: feeds {result.feed_ids}, "
                 f"accepted {result.total_accepted}, invalid {result.total_invalid}"
