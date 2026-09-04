@@ -17,7 +17,7 @@ Baapstore Google Drive -> Download -> Validate -> Quarantine bad rows
 - [x] Module 3 -- Inventory validation & Amazon TXT conversion
 - [x] Module 4 -- Amazon SP-API feed submission
 - [x] Module 5 -- Daily scheduler
-- [ ] Module 6 -- Logging & email notifications
+- [x] Module 6 -- Logging & email notifications
 - [ ] Module 7 -- Deployment
 
 ## Project layout

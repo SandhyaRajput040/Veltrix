@@ -34,6 +34,7 @@ class FileRunResult:
     rows_read: int = 0
     rows_accepted: int = 0
     rows_quarantined: int = 0
+    quarantine_csv_path: Optional[str] = None
     submission_mode: Optional[str] = None
     feed_ids: List[str] = field(default_factory=list)
     accepted_by_amazon: int = 0
@@ -135,7 +136,8 @@ def run_daily_pipeline(settings) -> DailyRunSummary:
             file_result.rows_read = processing_summary.rows_read
             file_result.rows_accepted = processing_summary.rows_accepted
             file_result.rows_quarantined = processing_summary.rows_quarantined
-
+            if processing_summary.rows_quarantined > 0:
+                file_result.quarantine_csv_path = processing_summary.quarantine_csv_path
             if processing_summary.rows_accepted > 0:
                 rows = _read_amazon_txt_rows(output_txt_path)
                 submission_result = submit_based_on_settings(rows, source_name, settings)
